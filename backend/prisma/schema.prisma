@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id        Int              @id @default(autoincrement())
+  name      String
+  email     String?          @unique
+  subjects  TeacherSubject[] // many-to-many with subjects
+  timetable Timetable[]      // one-to-many with timetable
+}
+
+model Subject {
+  id             Int              @id @default(autoincrement())
+  name           String
+  code           String           @unique
+  teachers       TeacherSubject[] // many-to-many with teachers
+  branchSubjects BranchSubject[]  // subjects for branches
+  timetable      Timetable[]      // scheduled slots
+}
+
+model TeacherSubject {
+  teacherId Int
+  subjectId Int
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  @@id([teacherId, subjectId])
+}
+
+model Branch {
+  id             Int              @id @default(autoincrement())
+  name           String           // e.g., CSE, EE
+  semester       Int              // 1, 2, 3...
+  subjects       BranchSubject[]  // subjects assigned to this branch
+  timetable      Timetable[]      // timetable for this branch
+}
+
+model BranchSubject {
+  branchId  Int
+  subjectId Int
+  frequency Int              // number of times per week
+  branch    Branch  @relation(fields: [branchId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  @@id([branchId, subjectId])
+}
+
+model Timetable {
+  id         Int      @id @default(autoincrement())
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  branchId   Int
+  day        String   // e.g., "Monday"
+  timeSlot   String   // e.g., "9:00 AM - 10:00 AM"
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  subjectId  Int
+  teacher    Teacher  @relation(fields: [teacherId], references: [id])
+  teacherId  Int
+
+  @@unique([branchId, day, timeSlot])
+  @@unique([teacherId, day, timeSlot])
+}
+
+
+
+
